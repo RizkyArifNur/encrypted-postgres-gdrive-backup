@@ -1,11 +1,11 @@
 # Postgres Personal GDrive Backup
-Backup a Postgres database to your Personal Google Drive.
 
-[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/16Nb5i?referralCode=doiska)
+A fork repo from https://github.com/doiska/postgres-gdrive-backup but added the command line and encryption feature
 
 ## How to use
 
 ### Google Cloud Platform Setup
+
 - Log-in to the [Google Cloud Console](https://console.cloud.google.com/).
 - Enable [Google Drive API](https://console.cloud.google.com/apis/api/drive.googleapis.com/overview).
 - Then [create a new service account](https://console.cloud.google.com/projectselector2/iam-admin/serviceaccounts/create)
@@ -17,13 +17,26 @@ Backup a Postgres database to your Personal Google Drive.
   - The email looks like: `projectname@project.iam.gserviceaccount.com`
   - Make sure to include Editor permissions.
 
-### Environment Setup
-You can use ``.env.default`` as a template for your environment variables.
-- `SERVICE_ACCOUNT`: The JSON string of the service account.
-    - You can get it by opening the JSON file you downloaded on the previous step and copying its content.
-    - Make sure to use single quotes (`'`) to wrap the JSON string.
-      ```dotenv
-       SERVICE_ACCOUNT='{"type":"service_account","project_id":"projectname","private_key_id":"123"}'
+### Requirements
+
+by default pg-drive use the `pm2`, `pg_dump` and `pg_restore` command to do the backup and restore database, please make sure it already installed on your machine
+
+### Installation
+
+`npm i -g pg-drive`
+
+### Run command
+
+after installation finish, you can just run the `pg-drive` command, and choose the command you want to run,
+
+> Note: please run the `config` command before using the `cron` and `restore` to avoid environment error
+
+### Configuration Setup
+
+you can set the configuration by using `pg-drive` config command, but you can also add the configuration manually in `~/.pg_drive/.env`, list of configuration:
+
+- `SERVICE_ACCOUNT_PATH`: The path to the JSON file of the service account.
+  - Example: `/path/to/service-account.json` (please avoid using the `~/docs/service-account.json` somehow nodejs can't recognized it, use the `/home/docs/service-account.json`)
 - `FOLDER_ID`: The ID of the folder where the backups will be stored.
   - You can find the ID on the URL of the folder, it's the string after `https://drive.google.com/drive/folders/`.
   - Example: `https://drive.google.com/drive/folders/1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q` => `1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q`
@@ -35,5 +48,4 @@ You can use ``.env.default`` as a template for your environment variables.
   - Example: `my-database-backup-`
   - Result: `my-database-backup-2024-02-01.sql.tar.gz`
 - `RUN_ON_START`: If set to `true`, the backup will run once when the app starts.
-
-Based on [railwayapp-templates/postgres-s3-backups](https://github.com/railwayapp-templates/postgres-s3-backups).
+- `ENCYRPTION_SECRET`: The secret key used for encrypting the backups.
