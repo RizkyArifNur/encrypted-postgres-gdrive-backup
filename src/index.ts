@@ -134,8 +134,8 @@ async function main() {
         }
       );
     });
-    execSync("pm2 list");
-    execSync("pm2 save");
+    execSync("pm2 list", { stdio: "inherit" });
+    execSync("pm2 save", { stdio: "inherit" });
     pm2.disconnect();
     console.log("Cron job started.");
   } else if (action === Action.Restore) {
