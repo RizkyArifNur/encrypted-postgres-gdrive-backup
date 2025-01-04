@@ -8,7 +8,7 @@ import * as path from "path";
 import * as os from "os";
 import { filesize } from "filesize";
 import { createReadStream, createWriteStream } from "fs";
-import dayjs from "dayjs";
+import * as dayjs from "dayjs";
 import * as crypto from "crypto";
 import { readFile } from "fs/promises";
 import { writeFile } from "fs/promises";
