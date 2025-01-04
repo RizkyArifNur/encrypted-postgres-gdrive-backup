@@ -12,6 +12,7 @@ enum Action {
   Restore = "Restore",
 }
 import * as dotenv from "dotenv";
+import { execSync } from "child_process";
 const CONFIG_FOLDER = join(os.homedir(), ".pg_gdrive");
 const ENV_FILENAME = ".env";
 
@@ -37,8 +38,6 @@ async function loadEnv(): Promise<string> {
 }
 
 async function main() {
-  console.log("main");
-
   const action = await select({
     message: "What do you want to do?",
     choices: [
@@ -68,6 +67,30 @@ async function main() {
       ],
     });
     const filePrefix = await input({ message: "Enter FILE_PREFIX:" });
+    const retention = await await select({
+      message: "Retention For Backup File:",
+      choices: [
+        {
+          name: "Disabled (all backups will be kept)",
+          value: "disabled",
+        },
+        {
+          name: "week",
+          value: "week",
+        },
+        {
+          name: "month",
+          value: "month",
+        },
+        {
+          name: "year",
+          value: "year",
+        },
+      ],
+    });
+
+    const cronExpression = await input({ message: "Enter CRON_EXPRESSION:" });
+
     const encryptionSecret = await input({
       message: "Enter ENCYRPTION_SECRET:",
     });
@@ -82,7 +105,9 @@ async function main() {
       `DATABASE_URL=${databaseUrl}\n` +
       `RUN_ON_START=${runOnStart}\n` +
       `FILE_PREFIX=${filePrefix}\n` +
-      `ENCYRPTION_SECRET=${encryptionSecret}`;
+      `ENCYRPTION_SECRET=${encryptionSecret}\n` +
+      `RETENTION=${retention}\n` +
+      `CRON_EXPRESSION=${cronExpression}\n`;
 
     await writeFile(join(CONFIG_FOLDER, ENV_FILENAME), dotenvStr);
     console.log("Config written to ~/.gdrive_pgbackup/.env");
@@ -109,16 +134,8 @@ async function main() {
         }
       );
     });
-    await new Promise((resolve, reject) => {
-      pm2.list((err, list) => {
-        if (err) {
-          console.error(err);
-        } else {
-          console.log(list);
-        }
-        resolve(null);
-      });
-    });
+    execSync("pm2 list");
+    execSync("pm2 save");
     pm2.disconnect();
     console.log("Cron job started.");
   } else if (action === Action.Restore) {
@@ -126,7 +143,6 @@ async function main() {
 
     dotenv.config({ path: join(CONFIG_FOLDER, ENV_FILENAME) });
 
-    console.log(process.env["SERVICE_ACCOUNT_PATH"]);
     const backupRestore = await import("./backup-restore");
     await backupRestore.restore();
   }

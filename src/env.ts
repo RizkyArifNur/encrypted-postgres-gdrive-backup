@@ -10,7 +10,7 @@ export const env = cleanEnv(
     }),
     DATABASE_URL: str(),
     FOLDER_ID: str(),
-    CRON_EXPRESSION: str({ default: "0 0 * * *" }),
+    CRON_EXPRESSION: str({ default: "0 17 * * *" }), // midnight Asia/Jakarta
     RUN_ON_START: bool({ default: true }),
     ENCYRPTION_SECRET: str(),
   },
@@ -20,8 +20,6 @@ export const env = cleanEnv(
       console.error(
         "Error loading config, please check your configuration file."
       );
-
-      console.log(errors);
 
       process.exit(1);
     },
