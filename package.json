@@ -1,6 +1,6 @@
 {
   "name": "pg-gdrive",
-  "version": "0.0.4",
+  "version": "0.1.0",
   "scripts": {
     "build": "tsc",
     "start": "ts-node"
