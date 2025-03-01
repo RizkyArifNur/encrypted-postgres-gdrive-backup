@@ -202,6 +202,7 @@ const deriveKeyAndIV = (password: string, salt: Buffer) => {
 
 // Function to encrypt the file content
 const encryptFile = async (filePath: string, password: string) => {
+  console.log("Encrypting file...");
   try {
     // Generate a random salt
     const salt = crypto.randomBytes(16);
@@ -209,20 +210,31 @@ const encryptFile = async (filePath: string, password: string) => {
     // Derive the key and IV from the passphrase and salt
     const { key, iv } = deriveKeyAndIV(password, salt);
 
-    // Read the file data
-    const fileData = await readFile(filePath);
+    // Create read and write streams
+    const readStream = createReadStream(filePath);
+    const tempPath = `${filePath}.tmp`;
+    const writeStream = createWriteStream(tempPath);
+
+    // Write salt first
+    writeStream.write(salt);
 
     // Create cipher
     const cipher = crypto.createCipheriv(algorithm, key, iv);
 
-    // Encrypt the data
-    const encryptedData = Buffer.concat([
-      cipher.update(fileData),
-      cipher.final(),
-    ]);
+    // Pipe the streams
+    await new Promise((resolve, reject) => {
+      readStream
+        .pipe(cipher)
+        .pipe(writeStream)
+        .on("finish", resolve)
+        .on("error", reject);
+    });
 
-    // Write the salt and encrypted data back to the file
-    await writeFile(filePath, Buffer.concat([salt, encryptedData]));
+    // Replace original file with encrypted file
+    await unlink(filePath);
+    await new Promise((resolve) => {
+      exec(`mv "${tempPath}" "${filePath}"`, resolve);
+    });
 
     console.log("File encrypted successfully.");
   } catch (error) {
@@ -233,27 +245,44 @@ const encryptFile = async (filePath: string, password: string) => {
 // Function to decrypt the file content
 const decryptFile = async (filePath: string, password: string) => {
   try {
-    // Read the file data
-    const fileData = await readFile(filePath);
+    // Read first 16 bytes to get salt
+    const readSaltStream = createReadStream(filePath, { start: 0, end: 15 });
+    const saltChunks: Buffer[] = [];
 
-    // Extract the salt (first 16 bytes) and the encrypted data
-    const salt = fileData.slice(0, 16);
-    const encryptedData = fileData.slice(16);
+    await new Promise((resolve, reject) => {
+      readSaltStream
+        .on("data", (chunk) => saltChunks.push(chunk as Buffer))
+        .on("end", resolve)
+        .on("error", reject);
+    });
+
+    const salt = Buffer.concat(saltChunks);
 
     // Derive the key and IV from the passphrase and extracted salt
     const { key, iv } = deriveKeyAndIV(password, salt);
 
+    // Create read stream (skipping salt) and write stream
+    const readStream = createReadStream(filePath, { start: 16 });
+    const tempPath = `${filePath}.tmp`;
+    const writeStream = createWriteStream(tempPath);
+
     // Create decipher
     const decipher = crypto.createDecipheriv(algorithm, key, iv);
 
-    // Decrypt the data
-    const decryptedData = Buffer.concat([
-      decipher.update(encryptedData),
-      decipher.final(),
-    ]);
+    // Pipe the streams
+    await new Promise((resolve, reject) => {
+      readStream
+        .pipe(decipher)
+        .pipe(writeStream)
+        .on("finish", resolve)
+        .on("error", reject);
+    });
 
-    // Write the decrypted data back to the file
-    await writeFile(filePath, decryptedData);
+    // Replace encrypted file with decrypted file
+    await unlink(filePath);
+    await new Promise((resolve) => {
+      exec(`mv "${tempPath}" "${filePath}"`, resolve);
+    });
 
     console.log("File decrypted successfully.");
   } catch (error) {
